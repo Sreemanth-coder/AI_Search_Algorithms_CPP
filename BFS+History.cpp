@@ -1,106 +1,80 @@
 #include <iostream>
 #include <vector>
 #include <queue>
-#include <utility>
 
 using namespace std;
 
-struct NodeInfo {
-    int id;
+struct State {
+    int node;
     int cost;
     vector<int> path;
 };
 
-void find_path_bfs(
-    int num_vertices,
-    const vector<vector<pair<int, int>>>& adj_list,
-    int start_node,
-    int goal_node
-) {
-    if (start_node < 0 || start_node >= num_vertices || goal_node < 0 || goal_node >= num_vertices) {
-        cout << "Invalid start or goal node." << endl;
+void bfs_shortest_path(int vertices, const vector<vector<pair<int,int>>> &graph, int source, int target) {
+    if (source < 0 || source >= vertices || target < 0 || target >= vertices) {
+        cout << "Invalid input for start or target node\n";
         return;
     }
 
-    queue<NodeInfo> q;
-    vector<bool> visited(num_vertices, false);
-    NodeInfo startInfo = {start_node, 0, {start_node}};
-    q.push(startInfo);
-    visited[start_node] = true;
+    queue<State> q;
+    vector<bool> seen(vertices, false);
 
-    bool path_found = false;
-    NodeInfo result_info;
+    q.push({source, 0, {source}});
+    seen[source] = true;
 
     while (!q.empty()) {
-        NodeInfo current_info = q.front();
+        State cur = q.front();
         q.pop();
 
-        int current_node = current_info.id;
-        int current_cost = current_info.cost;
-        vector<int> current_path = current_info.path;
-
-        if (current_node == goal_node) {
-            result_info = current_info;
-            path_found = true;
-            break;
+        if (cur.node == target) {
+            cout << "Path: ";
+            for (int i = 0; i < (int)cur.path.size(); i++) {
+                cout << cur.path[i] << (i + 1 == (int)cur.path.size() ? "" : " -> ");
+            }
+            cout << "\nTotal Cost: " << cur.cost << "\n";
+            return;
         }
 
-        for (const auto& edge : adj_list[current_node]) {
-            int neighbor = edge.first;
-            int weight = edge.second;
-
-            if (!visited[neighbor]) {
-                visited[neighbor] = true;
-
-                NodeInfo neighbor_info;
-                neighbor_info.id = neighbor;
-                neighbor_info.cost = current_cost + weight;
-                neighbor_info.path = current_path;
-                neighbor_info.path.push_back(neighbor);
-
-                q.push(neighbor_info);
+        for (auto &edge : graph[cur.node]) {
+            int nxt = edge.first;
+            int w = edge.second;
+            if (!seen[nxt]) {
+                seen[nxt] = true;
+                State next_state = cur;
+                next_state.node = nxt;
+                next_state.cost += w;
+                next_state.path.push_back(nxt);
+                q.push(next_state);
             }
         }
     }
 
-    if (path_found) {
-        cout << "Path from " << start_node << " to " << goal_node << ": ";
-        for (size_t i = 0; i < result_info.path.size(); ++i) {
-            cout << result_info.path[i] << (i == result_info.path.size() - 1 ? "" : " -> ");
-        }
-        cout << endl;
-        cout << "Total cost of the path: " << result_info.cost << endl;
-    } else {
-        cout << "No path found from " << start_node << " to " << goal_node << "." << endl;
-    }
+    cout << "No path exists between " << source << " and " << target << ".\n";
 }
 
 int main() {
-    int num_vertices, num_edges;
-    cout << "Enter the number of vertices in the graph: ";
-    cin >> num_vertices;
+    int V, E;
+    cout << "Enter number of vertices: ";
+    cin >> V;
+    cout << "Enter number of edges: ";
+    cin >> E;
 
-    cout << "Enter the number of edges: ";
-    cin >> num_edges;
-
-    vector<vector<pair<int, int>>> adj_list(num_vertices);
-
-    cout << "Enter the edges (source, destination, weight):" << endl;
-    for (int i = 0; i < num_edges; ++i) {
+    vector<vector<pair<int,int>>> graph(V);
+    cout << "Enter edges (u v w):\n";
+    for (int i = 0; i < E; i++) {
         int u, v, w;
         cin >> u >> v >> w;
-        adj_list[u].push_back({v, w});
-        adj_list[v].push_back({u, w});
+        graph[u].push_back({v, w});
+        graph[v].push_back({u, w});
     }
 
-    int start_node, goal_node;
-    cout << "Enter the starting node: ";
-    cin >> start_node;
+    int start, goal;
+    cout << "Enter start node: ";
+    cin >> start;
+    cout << "Enter goal node: ";
+    cin >> goal;
 
-    cout << "Enter the goal node: ";
-    cin >> goal_node;
-
-    find_path_bfs(num_vertices, adj_list, start_node, goal_node);
+    bfs_shortest_path(V, graph, start, goal);
 
     return 0;
 }
