@@ -3,70 +3,70 @@
 #include <limits>
 using namespace std;
 
-int n, m;
-vector<vector<pair<int,int>>> graph;
-vector<bool> visited;
-vector<int> currentPath, bestPath;
-int bestCost = numeric_limits<int>::max();
+int n, e;
+vector<vector<pair<int,int>>> adj;
+vector<int> pathNow, pathBest;
+vector<bool> seen;
+int minPathCost = numeric_limits<int>::max();
 
-void dfsAllPaths(int current, int goal, int costSoFar) {
-    if (current == goal) {
-        if (costSoFar < bestCost) {
-            bestCost = costSoFar;
-            bestPath = currentPath;
+void britishMuseum(int node, int target, int cost) {
+    if (node == target) {
+        if (cost < minPathCost) {
+            minPathCost = cost;
+            pathBest = pathNow;
         }
         return;
     }
 
-    for (auto &edge : graph[current]) {
-        int nextNode = edge.first;
-        int edgeCost = edge.second;
-        if (!visited[nextNode]) {
-            visited[nextNode] = true;
-            currentPath.push_back(nextNode);
-            dfsAllPaths(nextNode, goal, costSoFar + edgeCost);
-            currentPath.pop_back();
-            visited[nextNode] = false;
+    for (auto &p : adj[node]) {
+        int next = p.first, weight = p.second;
+        if (!seen[next]) {
+            seen[next] = true;
+            pathNow.push_back(next);
+            britishMuseum(next, target, cost + weight);
+            pathNow.pop_back();
+            seen[next] = false;
         }
     }
 }
 
 int main() {
-    cout << "Number of vertices: ";
+    cout << "Nodes: ";
     cin >> n;
-    graph.assign(n, vector<pair<int,int>>());
-    visited.assign(n, false);
+    cout << "Edges: ";
+    cin >> e;
 
-    cout << "Number of edges: ";
-    cin >> m;
+    adj.assign(n, {});
+    seen.assign(n, false);
 
-    for (int i = 0; i < m; i++) {
-        int u, v, c;
-        cout << "Enter edge (from to cost): ";
-        cin >> u >> v >> c;
-        graph[u].push_back({v, c});
-        graph[v].push_back({u, c});
+    cout << "Enter (u v cost):" << endl;
+    for (int i = 0; i < e; i++) {
+        int u, v, w;
+        cin >> u >> v >> w;
+        adj[u].push_back({v, w});
+        adj[v].push_back({u, w}); // undirected
     }
 
     int start, goal;
-    cout << "Enter start vertex: ";
+    cout << "Start node: ";
     cin >> start;
-    cout << "Enter goal vertex: ";
+    cout << "Goal node: ";
     cin >> goal;
 
-    visited[start] = true;
-    currentPath.push_back(start);
+    seen[start] = true;
+    pathNow.push_back(start);
 
-    dfsAllPaths(start, goal, 0);
+    britishMuseum(start, goal, 0);
 
-    if (bestCost == numeric_limits<int>::max()) {
-        cout << "No path found\n";
+    if (minPathCost == numeric_limits<int>::max()) {
+        cout << "No path exists.\n";
     } else {
-        cout << "Shortest path: ";
-        for (size_t i = 0; i < bestPath.size(); i++) {
-            cout << bestPath[i];
-            if (i != bestPath.size() - 1) cout << " -> ";
+        cout << "Discovered path: ";
+        for (size_t i = 0; i < pathBest.size(); i++) {
+            cout << pathBest[i];
+            if (i + 1 < pathBest.size()) cout << " -> ";
         }
-        cout << "\nCost: " << bestCost << "\n";
+        cout << "\nCost = " << minPathCost << "\n";
     }
+    return 0;
 }
