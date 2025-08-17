@@ -1,110 +1,107 @@
-#include <iostream>
-#include <vector>
-#include <queue>
+#include <bits/stdc++.h>
 using namespace std;
 
-struct Node {
-    int vertex;
-    int cost;
-    vector<int> path;
+struct State {
+    int node;
+    int gCost;
+    vector<int> trail;
 };
 
-int n, m, beamWidth;
-vector<vector<pair<int,int>>> graph;
-vector<int> heuristic;
-vector<int> history;
+int V, E, beamLimit;
+vector<vector<pair<int,int>>> adj;
+vector<int> h;
+vector<int> visitedTrail;
 
-struct Compare {
-    bool operator()(const Node &a, const Node &b) {
-        int costA = a.cost + heuristic[a.vertex];
-        int costB = b.cost + heuristic[b.vertex];
-        return costA > costB;
+struct NodeCmp {
+    bool operator()(const State &a, const State &b) const {
+        return (a.gCost + h[a.node]) > (b.gCost + h[b.node]);
     }
 };
 
-bool beamSearch(int start, int goal) {
-    priority_queue<Node, vector<Node>, Compare> pq;
-    pq.push({start, 0, {start}});
-    history.push_back(start);
+bool beam_search(int source, int target) {
+    priority_queue<State, vector<State>, NodeCmp> currentLayer;
+    currentLayer.push({source, 0, {source}});
+    visitedTrail.push_back(source);
 
-    while (!pq.empty()) {
-        vector<Node> candidates;
-        int count = 0;
-        while (!pq.empty() && count < beamWidth) {
-            candidates.push_back(pq.top());
-            pq.pop();
-            count++;
+    while (!currentLayer.empty()) {
+        vector<State> layer;
+        for (int i = 0; i < beamLimit && !currentLayer.empty(); i++) {
+            layer.push_back(currentLayer.top());
+            currentLayer.pop();
         }
-        if (candidates.empty()) return false;
 
-        priority_queue<Node, vector<Node>, Compare> nextPQ;
+        if (layer.empty()) return false;
 
-        for (auto &node : candidates) {
-            if (node.vertex == goal) {
-                cout << "Path: ";
-                for (size_t i = 0; i < node.path.size(); i++) {
-                    cout << node.path[i];
-                    if (i != node.path.size() - 1) cout << " -> ";
+        priority_queue<State, vector<State>, NodeCmp> nextLayer;
+
+        for (auto &st : layer) {
+            if (st.node == target) {
+                cout << "Path found: ";
+                for (size_t i = 0; i < st.trail.size(); i++) {
+                    cout << st.trail[i];
+                    if (i + 1 < st.trail.size()) cout << " -> ";
                 }
-                cout << "\nCost: " << node.cost << "\n";
-                cout << "Visited history: ";
-                for (size_t i = 0; i < history.size(); i++) {
-                    cout << history[i];
-                    if (i != history.size() - 1) cout << " -> ";
+                cout << "\nTotal cost: " << st.gCost << "\n";
+
+                cout << "Visited order: ";
+                for (size_t i = 0; i < visitedTrail.size(); i++) {
+                    cout << visitedTrail[i];
+                    if (i + 1 < visitedTrail.size()) cout << " -> ";
                 }
                 cout << "\n";
                 return true;
             }
-            for (auto &edge : graph[node.vertex]) {
-                vector<int> newPath = node.path;
-                newPath.push_back(edge.first);
-                nextPQ.push({edge.first, node.cost + edge.second, newPath});
-                history.push_back(edge.first);
+
+            for (auto &edge : adj[st.node]) {
+                vector<int> newTrail = st.trail;
+                newTrail.push_back(edge.first);
+                nextLayer.push({edge.first, st.gCost + edge.second, newTrail});
+                visitedTrail.push_back(edge.first);
             }
         }
 
-        int inserted = 0;
-        while (!nextPQ.empty() && inserted < beamWidth) {
-            pq.push(nextPQ.top());
-            nextPQ.pop();
-            inserted++;
+        for (int i = 0; i < beamLimit && !nextLayer.empty(); i++) {
+            currentLayer.push(nextLayer.top());
+            nextLayer.pop();
         }
     }
+
     return false;
 }
 
 int main() {
-    cout << "Number of vertices: ";
-    cin >> n;
-    graph.assign(n, vector<pair<int,int>>());
-    heuristic.assign(n, 0);
-    cout << "Number of edges: ";
-    cin >> m;
+    cout << "Enter number of vertices: ";
+    cin >> V;
+    adj.assign(V, {});
+    h.assign(V, 0);
 
-    for (int i = 0; i < m; i++) {
-        int u,v,c;
-        cout << "Enter edge (from to cost): ";
-        cin >> u >> v >> c;
-        graph[u].push_back({v,c});
-        graph[v].push_back({u,c});
+    cout << "Enter number of edges: ";
+    cin >> E;
+    for (int i = 0; i < E; i++) {
+        int u, v, w;
+        cout << "Edge (u v cost): ";
+        cin >> u >> v >> w;
+        adj[u].push_back({v, w});
+        adj[v].push_back({u, w});
     }
 
-    cout << "Enter heuristic values for each vertex:\n";
-    for (int i = 0; i < n; i++) {
-        cout << "Heuristic for vertex " << i << ": ";
-        cin >> heuristic[i];
+    cout << "Enter heuristic values:\n";
+    for (int i = 0; i < V; i++) {
+        cout << "h(" << i << "): ";
+        cin >> h[i];
     }
 
     cout << "Enter beam width: ";
-    cin >> beamWidth;
+    cin >> beamLimit;
 
-    int start, goal;
-    cout << "Enter start vertex: ";
-    cin >> start;
-    cout << "Enter goal vertex: ";
-    cin >> goal;
+    int s, t;
+    cout << "Start vertex: ";
+    cin >> s;
+    cout << "Goal vertex: ";
+    cin >> t;
 
-    history.clear();
-    bool found = beamSearch(start, goal);
-    if (!found) cout << "No path found\n";
+    visitedTrail.clear();
+    if (!beam_search(s, t)) {
+        cout << "No path could be found.\n";
+    }
 }
