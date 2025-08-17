@@ -1,80 +1,74 @@
-#include <iostream>
-#include <vector>
-#include <queue>
-#include <unordered_map>
-#include <algorithm>
+#include <bits/stdc++.h>
 using namespace std;
 
 struct Edge {
-    int to;
-    int cost;
+    int node;
+    int weight;
 };
 
-struct Node {
-    int vertex;
-    int fScore;
-    int gScore;
-    bool operator>(const Node &other) const {
-        return fScore > other.fScore;
+struct State {
+    int id;
+    int g;
+    int f;
+};
+
+struct Compare {
+    bool operator()(const State &a, const State &b) const {
+        return a.f > b.f;
     }
 };
 
-int n, m;
-vector<vector<Edge>> graph;
-vector<int> heuristic;
+int N, M;
+vector<vector<Edge>> adj;
+vector<int> h;
 
-vector<int> reconstructPath(unordered_map<int,int> &cameFrom, int current) {
-    vector<int> path;
-    while (cameFrom.find(current) != cameFrom.end()) {
-        path.push_back(current);
-        current = cameFrom[current];
+vector<int> buildPath(unordered_map<int,int> &parent, int dest) {
+    vector<int> route;
+    while (parent.count(dest)) {
+        route.push_back(dest);
+        dest = parent[dest];
     }
-    path.push_back(current);
-    reverse(path.begin(), path.end());
-    return path;
+    route.push_back(dest);
+    reverse(route.begin(), route.end());
+    return route;
 }
 
-bool AStar(int start, int goal) {
-    priority_queue<Node, vector<Node>, greater<Node>> openSet;
-    vector<int> gScore(n, 1e9);
-    unordered_map<int,int> cameFrom;
+bool astar(int src, int dest) {
+    priority_queue<State, vector<State>, Compare> pq;
+    vector<int> dist(N, INT_MAX);
+    unordered_map<int,int> parent;
 
-    gScore[start] = 0;
-    openSet.push({start, heuristic[start], 0});
+    dist[src] = 0;
+    pq.push({src, 0, h[src]});
 
-    while (!openSet.empty()) {
-        Node current = openSet.top();
-        openSet.pop();
+    while (!pq.empty()) {
+        State cur = pq.top(); pq.pop();
 
-        if (current.vertex == goal) {
-            vector<int> path = reconstructPath(cameFrom, goal);
-            cout << "Path: ";
-            int cost = 0;
-            for (size_t i=0; i<path.size(); i++) {
-                cout << path[i];
-                if (i != path.size()-1) cout << " -> ";
-            }
+        if (cur.id == dest) {
+            auto path = buildPath(parent, dest);
+            int total = 0;
             for (size_t i=0; i+1<path.size(); i++) {
-                int u = path[i];
-                int v = path[i+1];
-                for (auto &e : graph[u]) {
-                    if (e.to == v) {
-                        cost += e.cost;
+                for (auto &e : adj[path[i]]) {
+                    if (e.node == path[i+1]) {
+                        total += e.weight;
                         break;
                     }
                 }
             }
-            cout << "\nCost: " << cost << "\n";
+            cout << "Path found: ";
+            for (size_t i=0; i<path.size(); i++) {
+                cout << path[i] << (i+1<path.size() ? " -> " : "\n");
+            }
+            cout << "Total cost: " << total << "\n";
             return true;
         }
 
-        for (auto &edge : graph[current.vertex]) {
-            int tentative_gScore = gScore[current.vertex] + edge.cost;
-            if (tentative_gScore < gScore[edge.to]) {
-                cameFrom[edge.to] = current.vertex;
-                gScore[edge.to] = tentative_gScore;
-                int fScore = tentative_gScore + heuristic[edge.to];
-                openSet.push({edge.to, fScore, tentative_gScore});
+        for (auto &ed : adj[cur.id]) {
+            int newCost = dist[cur.id] + ed.weight;
+            if (newCost < dist[ed.node]) {
+                dist[ed.node] = newCost;
+                parent[ed.node] = cur.id;
+                pq.push({ed.node, newCost, newCost + h[ed.node]});
             }
         }
     }
@@ -82,33 +76,21 @@ bool AStar(int start, int goal) {
 }
 
 int main() {
-    cout << "Number of vertices: ";
-    cin >> n;
-    graph.assign(n, vector<Edge>());
-    heuristic.assign(n, 0);
-    cout << "Number of edges: ";
-    cin >> m;
+    cin >> N >> M;
+    adj.assign(N, {});
+    h.resize(N);
 
-    for (int i=0; i<m; i++) {
-        int u,v,c;
-        cout << "Enter edge (from to cost): ";
-        cin >> u >> v >> c;
-        graph[u].push_back({v,c});
-        graph[v].push_back({u,c});
+    for (int i=0; i<M; i++) {
+        int u,v,w;
+        cin >> u >> v >> w;
+        adj[u].push_back({v,w});
+        adj[v].push_back({u,w});
     }
 
-    cout << "Enter heuristic values for each vertex:\n";
-    for (int i=0; i<n; i++) {
-        cout << "Heuristic for vertex " << i << ": ";
-        cin >> heuristic[i];
-    }
+    for (int i=0; i<N; i++) cin >> h[i];
 
-    int start, goal;
-    cout << "Enter start vertex: ";
-    cin >> start;
-    cout << "Enter goal vertex: ";
-    cin >> goal;
+    int s, g;
+    cin >> s >> g;
 
-    if (!AStar(start, goal))
-        cout << "No path found\n";
+    if (!astar(s,g)) cout << "No path exists\n";
 }
